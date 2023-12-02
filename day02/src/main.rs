@@ -12,24 +12,23 @@ fn main() -> Result<()> {
     let games = contents
         .trim()
         .split("\n")
-        .map(|line| line.split(": ").collect::<Vec<&str>>())
-        .map(|line_vec| {
-            let mut iter = line_vec.iter();
-            Game {
+        .map(|line| line.split(": "))
+        .map(|mut iter| -> Result<Game> {
+            Ok(Game {
                 id: {
                     iter.next()
-                        .unwrap()
+                        .ok_or("missing")?
                         .strip_prefix("Game ")
-                        .unwrap()
-                        .parse::<usize>()
-                        .unwrap()
+                        .ok_or("missing")?
+                        .parse::<usize>()?
                 },
                 pulls: iter
                     .next()
-                    .unwrap()
+                    .ok_or("missing")?
                     .split("; ")
-                    .map(|pull| {
-                        pull.split(", ")
+                    .map(|pull| -> Result<Vec<(usize, Color)>> {
+                        Ok(pull
+                            .split(", ")
                             .map(|num_color| {
                                 let mut iter = num_color.split(' ');
                                 let num = iter.next().unwrap().parse::<usize>().unwrap();
@@ -41,12 +40,12 @@ fn main() -> Result<()> {
                                 };
                                 (num, color)
                             })
-                            .collect::<Vec<(usize, Color)>>()
+                            .collect::<Vec<(usize, Color)>>())
                     })
-                    .collect::<Vec<Vec<(usize, Color)>>>(),
-            }
+                    .collect::<Result<Vec<Vec<(usize, Color)>>>>()?,
+            })
         })
-        .collect::<Vec<Game>>();
+        .collect::<Result<Vec<Game>>>()?;
 
     let mut id_sum = 0;
 
@@ -74,12 +73,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        let power: usize = maxcolor
-            .values()
-            .collect::<Vec<&usize>>()
-            .into_iter()
-            .product();
-        power_sum += power;
+        power_sum += maxcolor.values().product::<usize>();
     }
 
     dbg!(power_sum);
