@@ -17,9 +17,9 @@ fn main() -> Result<()> {
             Ok(Game {
                 id: {
                     iter.next()
-                        .ok_or("missing")?
+                        .get_or_insert("missing")
                         .strip_prefix("Game ")
-                        .ok_or("missing")?
+                        .get_or_insert("missing")
                         .parse::<usize>()?
                 },
                 pulls: iter
@@ -47,9 +47,7 @@ fn main() -> Result<()> {
         })
         .collect::<Result<Vec<Game>>>()?;
 
-    let mut id_sum = 0;
-
-    for game in games.iter() {
+    let id_sum = games.iter().fold(0, |mut id_sum, game| {
         if game
             .pulls
             .iter()
@@ -57,24 +55,23 @@ fn main() -> Result<()> {
         {
             id_sum += game.id;
         }
-    }
+        id_sum
+    });
 
     dbg!(id_sum);
 
-    let mut power_sum = 0;
-
-    for game in games.iter() {
-        let mut maxcolor: HashMap<Color, usize> = HashMap::new();
-        for pull in game.pulls.iter() {
-            for (num, color) in pull {
-                let cur_max_num = *maxcolor.entry(*color).or_insert(0);
-                if *num > cur_max_num {
-                    maxcolor.insert(*color, *num);
+    let power_sum = games.iter().fold(0, |mut acc, game| {
+        let maxcolor = game.pulls.iter().fold(HashMap::new(), |acc, pull| {
+            pull.iter().fold(acc, |mut acc, (num, color)| {
+                if *num > *acc.entry(color).or_insert(0) {
+                    acc.insert(color, *num);
                 }
-            }
-        }
-        power_sum += maxcolor.values().product::<usize>();
-    }
+                acc
+            })
+        });
+        acc += maxcolor.values().product::<usize>();
+        acc
+    });
 
     dbg!(power_sum);
 
